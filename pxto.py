@@ -300,30 +300,58 @@ def Now():
 	Now=time.strftime('%Y-%m-%d %H:%M:%S')
 	return Now
 
-def RunDirect():
-	if len(sys.argv)!=3:
-		print 'Error: Pxto requires 2 arguments','('+str(len(sys.argv)-1)+' given).'
-	else:
-		Request=requests.get(UrlBase0+sys.argv[1]+UrlBase2+sys.argv[2])
-		if Request.status_code==200:
-			PJSON=json.loads(Request.content)
-			status=PJSON.get('status',-1)
-			if status==-1:
-				print 'Unknown error!'
-			else:
-				if status=='200':
-					print ('快递公司: '+ExpressList.get(sys.argv[1],-1)).decode('utf8')
-					print ('运 单 号: '+sys.argv[2]).decode('utf8')
-					print ('状　　态: '+Status.get(PJSON.get('state','Unknown error!'),'Unknown error!')).decode('utf8')
-					print '================================'
-					for Item in PJSON.get('data',[{'time':Now(),'context':'Unknown error!'}]):
-						print '['+Item.get('time','Unknown error!')+']	'+Item.get('context','Unknown error!')
-				else:
-					#if status=='201':
-					#print status
-					print '====================Error!===================='
-					print PJSON.get('message','Unknown error!')
-		raw_input('Press Enter to exit')
+def GetCompany(track_number):    
+    base_url='http://www.kuaidi100.com/autonumber/auto?num='
+    url = "{0}{1}".format(base_url, track_number)
+    request = requests.get(url)
+    if request.status_code == 200:
+        content = json.loads(request.content)
+        return content[0]["comCode"]
+
+
+def RunDirect(company, track_number):
+    Request=requests.get(UrlBase0+company+UrlBase2+track_number)
+    #print Request
+    if Request.status_code==200:
+        PJSON=json.loads(Request.content)
+        #print PJSON
+        status=PJSON.get('status',-1)
+        if status==-1:
+            print 'Unknown error!'
+        else:
+            if status=='200':
+                #print ('快递公司: '+ExpressList.get(company).decode('utf8'))
+                #print ('运 单 号: '+track_number).decode('utf8')
+                #print ('状　　态: '+Status.get(PJSON.get('state','Unknown error!'),'Unknown error!')).decode('utf8')
+                print ('快递公司: '+ExpressList.get(company))
+                print ('运 单 号: '+track_number)
+                print ('状　　态: '+Status.get(PJSON.get('state','Unknown error!'),'Unknown error!'))
+                print '================================'
+                for Item in PJSON.get('data',[{'time':Now(),'context':'Unknown error!'}]):
+                    print '['+Item.get('time','Unknown error!')+']	'+Item.get('context','Unknown error!')
+            else:
+                #if status=='201':
+                    #print status
+                print '====================Error!===================='
+                print PJSON.get('message','Unknown error!')
+    #raw_input('Press Enter to exit')
 
 if __name__=='__main__':
-	RunDirect()
+    if len(sys.argv) == 2:
+        company = GetCompany(sys.argv[1])
+        #print company
+        if company:
+            RunDirect(company, sys.argv[1])
+        else:
+            print "没有发现合适的快递公司名"
+    elif len(sys.argv) == 3:    
+	RunDirect(sys.argv[1], sys.argv[2])
+    else:
+        print """
+        python pxto.py 快递单号 
+
+        OR
+
+        python pxto.py 快递公司拼音名  快递单号 
+        """
+
